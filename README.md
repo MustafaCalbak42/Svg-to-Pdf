@@ -1,13 +1,12 @@
-# SVG'den PDF ve DXF'e Dönüştürücü
+# SVG'den PDF'E Dönüştürücü
 
 ## Proje Açıklaması
 
-Bu proje, SVG (Scalable Vector Graphics) dosyalarını PDF ve DXF formatlarına dönüştüren bir web uygulamasıdır. Kullanıcılar, web arayüzü aracılığıyla SVG dosyalarını yükleyebilir ve bu dosyaları PDF veya DXF formatında indirebilirler.
+Bu proje, SVG (Scalable Vector Graphics) dosyalarını PDF formatlarına dönüştüren bir web uygulamasıdır. Kullanıcılar, web arayüzü aracılığıyla SVG dosyalarını yükleyebilir ve bu dosyaları PDF veya DXF formatında indirebilirler.
 
 ## Özellikler
 
 - SVG dosyalarını PDF formatına dönüştürme
-- SVG dosyalarını DXF formatına dönüştürme
 - Kullanıcı dostu web arayüzü
 - Gerçek zamanlı dönüşüm
 - SVG renk ve boyut özelliklerini koruma
@@ -55,7 +54,6 @@ Bu proje, SVG (Scalable Vector Graphics) dosyalarını PDF ve DXF formatlarına 
 - **Backend**: Node.js, Express.js
 - **Dönüşüm Kütüphaneleri**: 
   - SVG'den PDF'e: svg-to-pdfkit, pdfkit
-  - SVG'den DXF'e: Özel dönüşüm algoritması
 - **Parsing**: xml2js
 
 ## Proje Yapısı
