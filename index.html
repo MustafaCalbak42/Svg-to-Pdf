@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SVG'den PDF'e Dönüştürücü</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f5f5f5;
+        }
+        .container {
+            text-align: center;
+            padding: 30px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 80%;
+            max-width: 600px;
+        }
+        .btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 15px 30px;
+            font-size: 18px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin: 10px;
+        }
+        .btn:hover {
+            background-color: #45a049;
+        }
+        .btn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        select {
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        #status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .loading {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        #debug {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+            text-align: left;
+            max-height: 150px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .refresh-btn {
+            background-color: #007bff;
+            color: white;
+            padding: 5px 10px;
+            font-size: 14px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin-left: 10px;
+        }
+        .refresh-btn:hover {
+            background-color: #0069d9;
+        }
+        .file-selection {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .file-selection select {
+            flex-grow: 1;
+            margin-bottom: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>SVG'den PDF'e Dönüştürücü</h1>
+        <p>Dönüştürmek istediğiniz SVG dosyasını seçin:</p>
+        
+        <div class="file-selection">
+            <select id="svgSelect">
+                <option value="">-- SVG Dosyası Seçin --</option>
+                <!-- SVG dosyaları burada dinamik olarak listelenecek -->
+            </select>
+            <button id="refreshBtn" class="refresh-btn" title="SVG Listesini Yenile">🔄</button>
+        </div>
+        
+        <button id="convertBtn" class="btn" disabled>PDF'e Dönüştür</button>
+        
+        <div id="status" style="display: none;"></div>
+        <div id="debug" style="display: none;"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const svgSelect = document.getElementById('svgSelect');
+            const refreshBtn = document.getElementById('refreshBtn');
+            const convertBtn = document.getElementById('convertBtn');
+            const statusDiv = document.getElementById('status');
+            const debugDiv = document.getElementById('debug');
+            
+            // Hata ayıklama fonksiyonu
+            function log(message, isError = false) {
+                const now = new Date().toLocaleTimeString();
+                const logEntry = document.createElement('div');
+                logEntry.textContent = `[${now}] ${message}`;
+                if (isError) {
+                    logEntry.style.color = 'red';
+                }
+                debugDiv.appendChild(logEntry);
+                debugDiv.style.display = 'block';
+                debugDiv.scrollTop = debugDiv.scrollHeight;
+                console.log(`[${now}] ${message}`);
+            }
+            
+            // SVG dosyalarını listele
+            async function loadSvgFiles() {
+                try {
+                                    log('SVG dosyaları yükleniyor...');
+                svgSelect.disabled = true;
+                convertBtn.disabled = true;
+                    
+                    // Mevcut seçenekleri temizle
+                    while (svgSelect.options.length > 1) {
+                        svgSelect.remove(1);
+                    }
+                    
+                    // API'den SVG dosyalarını al
+                    const response = await fetch('/api/list-svg-files');
+                    if (!response.ok) {
+                        throw new Error(`SVG dosyaları yüklenemedi: ${response.status} ${response.statusText}`);
+                    }
+                    
+                    const data = await response.json();
+                    
+                    if (!data.success) {
+                        throw new Error(data.message || 'SVG dosyaları yüklenemedi');
+                    }
+                    
+                    log(`${data.files.length} SVG dosyası bulundu`);
+                    
+                    // SVG dosyalarını seçim kutusuna ekle
+                    data.files.forEach(file => {
+                        const option = document.createElement('option');
+                        option.value = file;
+                        option.textContent = file;
+                        svgSelect.appendChild(option);
+                    });
+                    
+                    if (data.files.length === 0) {
+                        log('Klasörde SVG dosyası bulunamadı', true);
+                    }
+                    
+                } catch (error) {
+                    log(`SVG dosyaları yüklenirken hata oluştu: ${error.message}`, true);
+                } finally {
+                    svgSelect.disabled = false;
+                }
+            }
+            
+            // Sayfa yüklendiğinde SVG dosyalarını listele
+            loadSvgFiles();
+            
+            // Yenile butonuna tıklandığında
+            refreshBtn.addEventListener('click', loadSvgFiles);
+            
+            // SVG seçildiğinde butonları etkinleştir
+            svgSelect.addEventListener('change', function() {
+                convertBtn.disabled = !svgSelect.value;
+                if (svgSelect.value) {
+                    log(`SVG dosyası seçildi: ${svgSelect.value}`);
+                }
+            });
+            
+            // Dönüştürme butonu tıklandığında
+            convertBtn.addEventListener('click', async function() {
+                const selectedSvg = svgSelect.value;
+                if (!selectedSvg) return;
+                
+                // Durum mesajını göster
+                statusDiv.className = 'loading';
+                statusDiv.textContent = 'SVG dosyası dönüştürülüyor...';
+                statusDiv.style.display = 'block';
+                
+                // Butonları devre dışı bırak
+                convertBtn.disabled = true;
+                svgSelect.disabled = true;
+                
+                try {
+                    log(`SVG dosyası yükleniyor: ${selectedSvg}`);
+                    
+                    // SVG dosyasını al
+                    const svgResponse = await fetch(selectedSvg);
+                    if (!svgResponse.ok) {
+                        throw new Error(`SVG dosyası yüklenemedi: ${svgResponse.status} ${svgResponse.statusText}`);
+                    }
+                    
+                    const svgContent = await svgResponse.text();
+                    log(`SVG içeriği alındı (${svgContent.length} karakter)`);
+                    
+                    // API'ye SVG gönder
+                    log('API isteği gönderiliyor...');
+                    const apiResponse = await fetch('/api/convert-svg-to-pdf', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ 
+                            svgContent,
+                            filename: selectedSvg.replace('.svg', '')
+                        })
+                    });
+                    
+                    log(`API yanıtı alındı: ${apiResponse.status} ${apiResponse.statusText}`);
+                    
+                    const responseText = await apiResponse.text();
+                    log(`API yanıt içeriği: ${responseText}`);
+                    
+                    let result;
+                    try {
+                        result = JSON.parse(responseText);
+                    } catch (e) {
+                        throw new Error(`API yanıtı JSON formatında değil: ${responseText}`);
+                    }
+                    
+                    if (!apiResponse.ok) {
+                        throw new Error(result.message || 'Dönüştürme işlemi başarısız oldu');
+                    }
+                    
+                    // Başarılı mesajı göster
+                    statusDiv.className = 'success';
+                    statusDiv.textContent = `Dönüştürme başarılı! PDF dosyası proje klasörüne kaydedildi: ${result.pdfFilename}`;
+                    
+                    log(`Dönüştürme başarılı: ${result.pdfFilename} dosyası proje klasörüne kaydedildi`);
+                    
+                } catch (error) {
+                    // Hata mesajı göster
+                    log(`HATA: ${error.message}`, true);
+                    statusDiv.className = 'error';
+                    statusDiv.textContent = `Hata: ${error.message}`;
+                } finally {
+                    // Butonları tekrar etkinleştir
+                    svgSelect.disabled = false;
+                    convertBtn.disabled = !svgSelect.value;
+                }
+            });
+        });
+    </script>
+</body>
+</html> 
