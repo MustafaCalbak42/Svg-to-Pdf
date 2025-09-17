@@ -1,4 +1,4 @@
-# SVG'den PDF'E Dönüştürücü
+# SVG'den PDF'e Dönüştürücü
 
 ## Proje Açıklaması
 
